@@ -687,15 +687,27 @@
       transition: width 0.25s ease, height 0.25s ease, border-radius 0.25s ease;
     }
 
-    #webcamBubble.bg-removed {
-      width: 220px;
-      height: 250px;
+    #webcamBubble.bg-removed, #webcamBubble.bg-mode-cutout {
+      width: 220px !important;
+      height: 250px !important;
       border-radius: 0 !important;
       border: none !important;
       background: transparent !important;
       box-shadow: none !important;
       overflow: visible !important;
       filter: drop-shadow(0 10px 22px rgba(0, 0, 0, 0.8));
+    }
+
+    #webcamBubble.bg-mode-image {
+      overflow: hidden !important;
+      border: 3px solid var(--accent) !important;
+      box-shadow: 0 0 22px rgba(0, 240, 255, 0.45), 0 8px 24px rgba(0, 0, 0, 0.8) !important;
+    }
+
+    #webcamBubble.shape-card {
+      border-radius: 20px !important;
+      width: 195px !important;
+      height: 235px !important;
     }
 
     #webcamBubble video {
@@ -1176,6 +1188,22 @@
       <button class="action-pill-btn" id="btnToggleBgRemove" onclick="toggleBgRemoval()" title="AI দিয়ে পেছনের ব্যাকগ্রাউন্ড মুছে শুধু মানুষকে রাখুন">
         <span id="bgRemoveIcon">👤</span> <span id="bgRemoveText">রিমুভ BG</span>
       </button>
+      <!-- VIRTUAL BACKGROUND SELECTOR -->
+      <div class="sound-select-box" id="bgSelectBox" title="ক্যামেরা ব্যাকগ্রাউন্ড ইমেজ (Virtual Background)">
+        <span style="font-size:0.75rem; cursor:pointer;" onclick="triggerCustomBgUpload()" title="নিজের ছবি আপলোড করুন">🖼️</span>
+        <select class="sound-select-dropdown" id="bgPresetSelect" onchange="onBgPresetChange(this.value)">
+          <option value="cutout">✂️ কাটআউট (স্বচ্ছ BG)</option>
+          <option value="upload">📁 ছবি আপলোড...</option>
+          <option value="studio">🏢 আধুনিক স্টুডিও</option>
+          <option value="office">📚 বুকশেলফ / অফিস</option>
+          <option value="gradient">🌌 সাইয়ান গ্লো</option>
+          <option value="real">📷 আসল ক্যামেরা রুম</option>
+        </select>
+        <button type="button" class="sound-preview-btn" onclick="triggerCustomBgUpload()" title="কম্পিউটার থেকে যেকোনো ছবি আপলোড করুন">
+          আপলোড
+        </button>
+        <input type="file" id="customBgFileInput" accept="image/*" style="display:none;" onchange="handleCustomBgUpload(event)">
+      </div>
       <button class="action-pill-btn" id="btnToggleKaraoke" onclick="toggleKaraokePractice()">
         🎤 কারাওকে সাব
       </button>
@@ -1285,8 +1313,14 @@
           <div id="webcamBubble" title="টেনে যেকোনো জায়গায় নিয়ে যেতে পারেন">
             <video id="webcamVideo" autoplay playsinline muted style="display:none;"></video>
             <canvas id="webcamCanvas"></canvas>
-            <button type="button" class="webcam-mode-btn" onclick="toggleBgRemoval()" title="ব্যাকগ্রাউন্ড রিমুভ / বাবল মোড পরিবর্তন">
+            <button type="button" class="webcam-mode-btn" onclick="toggleBgRemoval()" title="ব্যাকগ্রাউন্ড রিমুভ / কাটআউট টগল">
               <span id="bubbleModeIcon">✂️</span>
+            </button>
+            <button type="button" class="webcam-mode-btn" onclick="triggerCustomBgUpload()" title="ব্যাকগ্রাউন্ডে নিজের ছবি আপলোড বা পরিবর্তন" style="top: 38px;">
+              <span>🖼️</span>
+            </button>
+            <button type="button" class="webcam-mode-btn" onclick="toggleBubbleShape()" title="বাবল শেইপ পরিবর্তন (গোল বা কার্ড)" style="top: 70px;">
+              <span id="bubbleShapeIcon">🔲</span>
             </button>
           </div>
 
@@ -2260,13 +2294,145 @@
       }
     }
 
-    // TOGGLE WEBCAM OVERLAY & AI BACKGROUND REMOVAL
+    // TOGGLE WEBCAM OVERLAY, AI BACKGROUND CUTOUT & VIRTUAL BACKGROUND
     let isWebcamOn = false;
     let isBgRemovalOn = false;
+    let bgMode = 'cutout'; // 'cutout', 'custom', 'studio', 'office', 'gradient', 'real'
+    let bubbleShape = 'circle'; // 'circle', 'card'
+    let customBgImage = null;
+    let customBgDataUrl = null;
+    let presetBgImages = {};
     let webcamStream = null;
     let selfieSegmentation = null;
     let isSegmentingFrame = false;
     let webcamAnimFrameId = null;
+
+    function initBgPresets() {
+      const presets = {
+        studio: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 720" width="960" height="720"><defs><linearGradient id="stGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#0a0f1d"/><stop offset="50%" stop-color="#0f172a"/><stop offset="100%" stop-color="#020617"/></linearGradient><radialGradient id="stHalo" cx="50%" cy="35%" r="55%"><stop offset="0%" stop-color="#00f0ff" stop-opacity="0.32"/><stop offset="45%" stop-color="#0284c7" stop-opacity="0.12"/><stop offset="85%" stop-color="#020617" stop-opacity="0"/></radialGradient><linearGradient id="neonBar" x1="0" y1="0" x2="1" y2="0"><stop offset="0%" stop-color="#00f0ff" stop-opacity="0"/><stop offset="50%" stop-color="#00f0ff" stop-opacity="0.8"/><stop offset="100%" stop-color="#38bdf8" stop-opacity="0"/></linearGradient></defs><rect width="960" height="720" fill="url(#stGrad)"/><g opacity="0.2"><line x1="80" y1="0" x2="80" y2="720" stroke="#38bdf8" stroke-width="4"/><line x1="120" y1="0" x2="120" y2="720" stroke="#38bdf8" stroke-width="3"/><line x1="160" y1="0" x2="160" y2="720" stroke="#38bdf8" stroke-width="4"/><line x1="200" y1="0" x2="200" y2="720" stroke="#38bdf8" stroke-width="3"/><line x1="760" y1="0" x2="760" y2="720" stroke="#38bdf8" stroke-width="4"/><line x1="800" y1="0" x2="800" y2="720" stroke="#38bdf8" stroke-width="3"/><line x1="840" y1="0" x2="840" y2="720" stroke="#38bdf8" stroke-width="4"/><line x1="880" y1="0" x2="880" y2="720" stroke="#38bdf8" stroke-width="3"/></g><circle cx="480" cy="300" r="320" fill="url(#stHalo)"/><rect x="240" y="24" width="480" height="4" rx="2" fill="url(#neonBar)"/><rect x="0" y="580" width="960" height="140" fill="#040814" opacity="0.85"/><line x1="0" y1="580" x2="960" y2="580" stroke="#1e293b" stroke-width="2"/></svg>`,
+        office: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 720" width="960" height="720"><defs><linearGradient id="libGrad" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#181310"/><stop offset="100%" stop-color="#0a0705"/></linearGradient><radialGradient id="warmLamp" cx="80%" cy="30%" r="50%"><stop offset="0%" stop-color="#fbbf24" stop-opacity="0.35"/><stop offset="50%" stop-color="#d97706" stop-opacity="0.12"/><stop offset="100%" stop-color="#000" stop-opacity="0"/></radialGradient></defs><rect width="960" height="720" fill="url(#libGrad)"/><g opacity="0.32"><rect x="60" y="80" width="840" height="16" fill="#38281b" rx="2"/><rect x="60" y="240" width="840" height="16" fill="#38281b" rx="2"/><rect x="60" y="400" width="840" height="16" fill="#38281b" rx="2"/><rect x="100" y="110" width="22" height="130" fill="#991b1b" rx="2"/><rect x="126" y="125" width="28" height="115" fill="#1e3a8a" rx="2"/><rect x="158" y="100" width="20" height="140" fill="#b45309" rx="2"/><rect x="182" y="118" width="24" height="122" fill="#065f46" rx="2"/><rect x="210" y="130" width="30" height="110" fill="#78350f" rx="2"/><rect x="680" y="265" width="26" height="135" fill="#1e3a8a" rx="2"/><rect x="710" y="280" width="22" height="120" fill="#991b1b" rx="2"/><rect x="736" y="255" width="30" height="145" fill="#d97706" rx="2"/><rect x="770" y="270" width="24" height="130" fill="#047857" rx="2"/></g><rect width="960" height="720" fill="url(#warmLamp)"/></svg>`,
+        gradient: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 720" width="960" height="720"><defs><radialGradient id="m1" cx="20%" cy="30%" r="65%"><stop offset="0%" stop-color="#00f0ff" stop-opacity="0.45"/><stop offset="50%" stop-color="#0284c7" stop-opacity="0.15"/><stop offset="100%" stop-color="#020617" stop-opacity="0"/></radialGradient><radialGradient id="m2" cx="80%" cy="70%" r="60%"><stop offset="0%" stop-color="#6366f1" stop-opacity="0.4"/><stop offset="50%" stop-color="#4338ca" stop-opacity="0.12"/><stop offset="100%" stop-color="#020617" stop-opacity="0"/></radialGradient></defs><rect width="960" height="720" fill="#030712"/><rect width="960" height="720" fill="url(#m1)"/><rect width="960" height="720" fill="url(#m2)"/></svg>`
+      };
+
+      for (const [key, svg] of Object.entries(presets)) {
+        const img = new Image();
+        img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+        presetBgImages[key] = img;
+      }
+
+      try {
+        const saved = localStorage.getItem('studio_custom_bg_data');
+        if (saved) {
+          const img = new Image();
+          img.onload = () => {
+            customBgImage = img;
+            customBgDataUrl = saved;
+            ensureCustomOptionInSelect('🖼️ আমার ছবি (সেভ করা)');
+          };
+          img.src = saved;
+        }
+      } catch(e) {}
+    }
+
+    function getActiveBgImage() {
+      if (bgMode === 'custom') return customBgImage;
+      return presetBgImages[bgMode] || null;
+    }
+
+    function drawCoverImage(ctx, img, w, h) {
+      if (!img || !img.width || !img.height) return;
+      const imgRatio = img.width / img.height;
+      const canvasRatio = w / h;
+      let sWidth, sHeight, sx, sy;
+      if (imgRatio > canvasRatio) {
+        sHeight = img.height;
+        sWidth = img.height * canvasRatio;
+        sx = (img.width - sWidth) / 2;
+        sy = 0;
+      } else {
+        sWidth = img.width;
+        sHeight = img.width / canvasRatio;
+        sx = 0;
+        sy = (img.height - sHeight) / 2;
+      }
+      ctx.drawImage(img, sx, sy, sWidth, sHeight, 0, 0, w, h);
+    }
+
+    function triggerCustomBgUpload() {
+      const inp = document.getElementById('customBgFileInput');
+      if (inp) {
+        inp.value = '';
+        inp.click();
+      }
+    }
+
+    function handleCustomBgUpload(event) {
+      const file = event.target.files && event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const dataUrl = e.target.result;
+        const img = new Image();
+        img.onload = function() {
+          customBgImage = img;
+          customBgDataUrl = dataUrl;
+          try {
+            localStorage.setItem('studio_custom_bg_data', dataUrl);
+          } catch(err) {
+            console.warn('LocalStorage limit reached for custom background:', err);
+          }
+          const label = file.name.length > 15 ? file.name.slice(0, 12) + '...' : file.name;
+          ensureCustomOptionInSelect('🖼️ ' + label);
+          setBgMode('custom');
+        };
+        img.src = dataUrl;
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function ensureCustomOptionInSelect(label) {
+      const select = document.getElementById('bgPresetSelect');
+      if (!select) return;
+      let customOpt = select.querySelector('option[value="custom"]');
+      if (!customOpt) {
+        customOpt = document.createElement('option');
+        customOpt.value = 'custom';
+        const uploadOpt = select.querySelector('option[value="upload"]');
+        if (uploadOpt && uploadOpt.nextSibling) {
+          select.insertBefore(customOpt, uploadOpt.nextSibling);
+        } else {
+          select.appendChild(customOpt);
+        }
+      }
+      customOpt.innerText = label || '🖼️ কাস্টম ছবি';
+    }
+
+    function toggleBubbleShape() {
+      bubbleShape = bubbleShape === 'circle' ? 'card' : 'circle';
+      const bubble = document.getElementById('webcamBubble');
+      const icon = document.getElementById('bubbleShapeIcon');
+      if (bubble) {
+        if (bubbleShape === 'card') {
+          bubble.classList.add('shape-card');
+          if (icon) icon.innerText = '⭕';
+        } else {
+          bubble.classList.remove('shape-card');
+          if (icon) icon.innerText = '🔲';
+        }
+      }
+    }
+
+    function roundRect(ctx, x, y, w, h, r) {
+      if (w < 2 * r) r = w / 2;
+      if (h < 2 * r) r = h / 2;
+      ctx.beginPath();
+      ctx.moveTo(x + r, y);
+      ctx.arcTo(x + w, y, x + w, y + h, r);
+      ctx.arcTo(x + w, y + h, x, y + h, r);
+      ctx.arcTo(x, y + h, x, y, r);
+      ctx.arcTo(x, y, x + w, y, r);
+      ctx.closePath();
+    }
 
     function initSelfieSegmentation() {
       if (selfieSegmentation) return Promise.resolve(selfieSegmentation);
@@ -2298,12 +2464,26 @@
       ctx.save();
       ctx.clearRect(0, 0, w, h);
 
-      if (isBgRemovalOn) {
+      if (isBgRemovalOn && bgMode !== 'real') {
         // 1. Draw human segmentation mask (white silhouette)
         ctx.drawImage(results.segmentationMask, 0, 0, w, h);
         // 2. Composite source-in: keeps video pixels only inside human mask!
         ctx.globalCompositeOperation = 'source-in';
         ctx.drawImage(results.image, 0, 0, w, h);
+
+        // 3. Virtual Background Image (if not transparent cutout)
+        if (bgMode !== 'cutout') {
+          const activeBgImg = getActiveBgImage();
+          if (activeBgImg && activeBgImg.complete && activeBgImg.naturalWidth > 0) {
+            ctx.globalCompositeOperation = 'destination-over';
+            // Pre-flip background image horizontally so that CSS scaleX(-1) mirror keeps background normal & unmirrored!
+            ctx.save();
+            ctx.translate(w, 0);
+            ctx.scale(-1, 1);
+            drawCoverImage(ctx, activeBgImg, w, h);
+            ctx.restore();
+          }
+        }
       } else {
         ctx.drawImage(results.image, 0, 0, w, h);
       }
@@ -2384,46 +2564,78 @@
       }
     }
 
-    async function toggleBgRemoval() {
-      if (!isWebcamOn) {
-        await toggleWebcam();
-        if (!isWebcamOn) return;
+    async function setBgMode(mode) {
+      bgMode = mode;
+      const select = document.getElementById('bgPresetSelect');
+      if (select && select.value !== mode) {
+        select.value = mode;
       }
-
-      isBgRemovalOn = !isBgRemovalOn;
 
       const bubble = document.getElementById('webcamBubble');
       const btn = document.getElementById('btnToggleBgRemove');
       const text = document.getElementById('bgRemoveText');
       const bubbleIcon = document.getElementById('bubbleModeIcon');
 
-      if (isBgRemovalOn) {
-        if (btn) btn.classList.add('active');
-        if (text) text.innerText = 'AI লোড হচ্ছে...';
-        if (bubble) bubble.classList.add('bg-removed');
-        if (bubbleIcon) bubbleIcon.innerText = '🔘';
-
-        if (!selfieSegmentation) {
-          try {
-            await initSelfieSegmentation();
-            if (text) text.innerText = 'BG রিমুভ (অন)';
-          } catch(err) {
-            console.error('SelfieSegmentation initialization failed:', err);
-            alert('AI ব্যাকগ্রাউন্ড রিমুভ ইঞ্জিন প্রস্তুত করতে সমস্যা হয়েছে। ইন্টারনেট কানেকশন চেক করুন।');
-            isBgRemovalOn = false;
-            if (btn) btn.classList.remove('active');
-            if (text) text.innerText = 'রিমুভ BG';
-            if (bubble) bubble.classList.remove('bg-removed');
-            if (bubbleIcon) bubbleIcon.innerText = '✂️';
-          }
-        } else {
-          if (text) text.innerText = 'BG রিমুভ (অন)';
-        }
-      } else {
+      if (mode === 'real') {
+        isBgRemovalOn = false;
         if (btn) btn.classList.remove('active');
         if (text) text.innerText = 'রিমুভ BG';
-        if (bubble) bubble.classList.remove('bg-removed');
+        if (bubble) {
+          bubble.classList.remove('bg-mode-cutout', 'bg-removed', 'bg-mode-image');
+        }
         if (bubbleIcon) bubbleIcon.innerText = '✂️';
+      } else {
+        isBgRemovalOn = true;
+        if (btn) btn.classList.add('active');
+        if (text) text.innerText = mode === 'cutout' ? 'BG কাটআউট (অন)' : 'ভার্চুয়াল BG (অন)';
+
+        if (bubble) {
+          if (mode === 'cutout') {
+            bubble.classList.add('bg-mode-cutout', 'bg-removed');
+            bubble.classList.remove('bg-mode-image');
+            if (bubbleIcon) bubbleIcon.innerText = '🔘';
+          } else {
+            bubble.classList.add('bg-mode-image');
+            bubble.classList.remove('bg-mode-cutout', 'bg-removed');
+            if (bubbleIcon) bubbleIcon.innerText = '✂️';
+          }
+        }
+
+        if (!isWebcamOn) {
+          await toggleWebcam();
+        }
+        if (!selfieSegmentation) {
+          try {
+            if (text) text.innerText = 'AI লোড হচ্ছে...';
+            await initSelfieSegmentation();
+            if (text) text.innerText = mode === 'cutout' ? 'BG কাটআউট (অন)' : 'ভার্চুয়াল BG (অন)';
+          } catch(err) {
+            console.error('SelfieSegmentation error:', err);
+            alert('AI ব্যাকগ্রাউন্ড ইঞ্জিন প্রস্তুত করতে সমস্যা হয়েছে। ইন্টারনেট কানেকশন চেক করুন।');
+            setBgMode('real');
+          }
+        }
+      }
+    }
+
+    function onBgPresetChange(val) {
+      if (val === 'upload') {
+        triggerCustomBgUpload();
+        return;
+      }
+      setBgMode(val);
+    }
+
+    async function toggleBgRemoval() {
+      if (!isWebcamOn) {
+        await toggleWebcam();
+        if (!isWebcamOn) return;
+      }
+
+      if (isBgRemovalOn) {
+        setBgMode('real');
+      } else {
+        setBgMode(bgMode === 'real' ? 'cutout' : bgMode);
       }
     }
 
@@ -2881,22 +3093,42 @@
               const pr = pw / 2;
 
               captureCtx.save();
-              if (!isBgRemovalOn) {
-                // Circular clipping when background is present
+              if (isBgRemovalOn && bgMode === 'cutout') {
+                // When background is removed (pure cutout), soft drop shadow for depth
+                captureCtx.shadowColor = 'rgba(0, 0, 0, 0.7)';
+                captureCtx.shadowBlur = 18;
+                captureCtx.shadowOffsetY = 6;
+              } else if (bubbleShape === 'card') {
+                // Rounded rect clipping
+                roundRect(captureCtx, px, py, pw, ph, 20 * scaleX);
+                captureCtx.clip();
+              } else {
+                // Circular clipping when background is present (image or real camera)
                 captureCtx.beginPath();
                 captureCtx.arc(px + pr, py + pr, pr, 0, Math.PI * 2);
                 captureCtx.clip();
-              } else {
-                // When background is removed, soft drop shadow for depth
-                captureCtx.shadowColor = 'rgba(0, 0, 0, 0.65)';
-                captureCtx.shadowBlur = 18;
-                captureCtx.shadowOffsetY = 6;
               }
               // Mirror the webcam frame horizontally (scaleX -1)
               captureCtx.translate(px + pw, py);
               captureCtx.scale(-1, 1);
               captureCtx.drawImage(camSource, 0, 0, pw, ph);
               captureCtx.restore();
+
+              // Draw border if not pure cutout
+              if (!isBgRemovalOn || bgMode !== 'cutout') {
+                captureCtx.save();
+                captureCtx.strokeStyle = '#00f0ff';
+                captureCtx.lineWidth = 3 * scaleX;
+                if (bubbleShape === 'card') {
+                  roundRect(captureCtx, px, py, pw, ph, 20 * scaleX);
+                  captureCtx.stroke();
+                } else {
+                  captureCtx.beginPath();
+                  captureCtx.arc(px + pr, py + pr, pr, 0, Math.PI * 2);
+                  captureCtx.stroke();
+                }
+                captureCtx.restore();
+              }
             }
 
             if (isRecording) captureLoop = requestAnimationFrame(frameTick);
@@ -2964,6 +3196,7 @@
     }
 
     // INITIALIZE & AUTO LOAD SCENE 1
+    initBgPresets();
     renderActiveScene();
     window.addEventListener('load', renderActiveScene);
     setTimeout(renderActiveScene, 100);

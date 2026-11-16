@@ -93,10 +93,16 @@
 
     body.light-theme .stage-container {
       background: #ffffff;
+      border-color: #0284c7;
+      outline-color: rgba(2, 132, 199, 0.25);
       box-shadow: 
-        0 0 0 1px rgba(239, 68, 68, 0.2),
+        0 0 0 1px rgba(2, 132, 199, 0.2),
         0 8px 30px rgba(0, 0, 0, 0.08),
         inset 0 0 40px rgba(241, 245, 249, 0.8);
+    }
+    body.light-theme .corner {
+      border-color: #0284c7;
+      filter: drop-shadow(0 0 4px rgba(2, 132, 199, 0.45));
     }
 
     body.light-theme .stage-grid-bg {
@@ -584,25 +590,37 @@
       width: auto;
       background: #080c16;
       border-radius: 14px;
-      border: 3px solid #ef4444;
-      outline: 3px solid rgba(239, 68, 68, 0.25);
+      border: 2.5px solid var(--accent, #00f0ff);
+      outline: 2px solid rgba(0, 240, 255, 0.22);
       box-shadow: 
-        0 0 0 1px rgba(239, 68, 68, 0.15),
-        0 0 28px rgba(239, 68, 68, 0.4),
-        0 0 60px rgba(239, 68, 68, 0.15),
+        0 0 0 1px rgba(0, 240, 255, 0.15),
+        0 0 24px rgba(0, 240, 255, 0.35),
+        0 0 50px rgba(0, 240, 255, 0.12),
         inset 0 0 40px rgba(0, 0, 0, 0.6);
       overflow: hidden;
       display: flex;
       align-items: center;
       justify-content: center;
       transition: all 0.3s ease;
-      animation: borderPulse 3s ease-in-out infinite;
+      animation: borderPulse 3.5s ease-in-out infinite;
       margin: auto;
     }
 
     @keyframes borderPulse {
-      0%, 100% { box-shadow: 0 0 0 1px rgba(239,68,68,0.15), 0 0 28px rgba(239,68,68,0.4), 0 0 60px rgba(239,68,68,0.15), inset 0 0 40px rgba(0,0,0,0.6); }
-      50%       { box-shadow: 0 0 0 1px rgba(239,68,68,0.25), 0 0 42px rgba(239,68,68,0.65), 0 0 90px rgba(239,68,68,0.25), inset 0 0 40px rgba(0,0,0,0.6); }
+      0%, 100% { 
+        box-shadow: 
+          0 0 0 1px rgba(0, 240, 255, 0.15), 
+          0 0 22px rgba(0, 240, 255, 0.3), 
+          0 0 45px rgba(0, 240, 255, 0.1), 
+          inset 0 0 40px rgba(0, 0, 0, 0.6); 
+      }
+      50% { 
+        box-shadow: 
+          0 0 0 1px rgba(0, 240, 255, 0.25), 
+          0 0 34px rgba(0, 240, 255, 0.5), 
+          0 0 70px rgba(0, 240, 255, 0.2), 
+          inset 0 0 40px rgba(0, 0, 0, 0.6); 
+      }
     }
 
     .stage-container.border-off {
@@ -712,11 +730,11 @@
       position: absolute;
       width: 20px;
       height: 20px;
-      border-color: #ef4444;
+      border-color: var(--accent, #00f0ff);
       border-style: solid;
       pointer-events: none;
       z-index: 15;
-      filter: drop-shadow(0 0 6px rgba(239,68,68,0.9));
+      filter: drop-shadow(0 0 6px rgba(0, 240, 255, 0.75));
     }
     .c-tl { top: 10px; left: 10px; border-width: 3px 0 0 3px; }
     .c-tr { top: 10px; right: 10px; border-width: 3px 3px 0 0; }

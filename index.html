@@ -1584,11 +1584,87 @@
             `
           }
         ]
+      },
+      {
+        id: "proj_computer_memory_ram",
+        title: "কম্পিউটার মেমোরি ও RAM কীভাবে কাজ করে? (Hardware & RAM Magic)",
+        category: "টেক এক্সপ্লেইনার",
+        scenes: [
+          {
+            title: "র‍্যাম হলো কম্পিউটারের দ্রুত কাজের টেবিল",
+            script: "কম্পিউটারের ভেতরে RAM বা র‍্যান্ডম অ্যাক্সেস মেমোরি হলো খুব দ্রুতগতির এক অস্থায়ী কাজের টেবিল। যখনই আপনি কোনো সফটওয়্যার বা গেম চালু করেন, সেটা হার্ডডিস্ক থেকে এসে প্রথমে জমা হয় RAM-এ।",
+            renderVisual: () => `
+              <div style="display:flex; width:100%; height:100%; align-items:center; justify-content:space-between; gap:30px;">
+                <div style="flex:1; display:flex; flex-direction:column; gap:16px;">
+                  <span style="padding:6px 14px; border-radius:14px; background:rgba(0,240,255,0.12); color:var(--accent); font-size:13px; font-weight:700; align-self:flex-start;">⚡ ধাপ ০১ • মূল ধারণা</span>
+                  <h1 style="font-size:36px; font-weight:800; line-height:1.2; color:#FFF;">RAM হলো প্রসেসরের<br/>কাজের টেবিল!</h1>
+                  <p style="color:var(--text-secondary); font-size:16px; line-height:1.5;">হার্ডডিস্কের ধীরগতির ড্রয়ার থেকে তথ্য তুলে এনে RAM তাৎক্ষণিকভাবে প্রসেসরের সামনে সাজিয়ে রাখে।</p>
+                  <div style="padding:10px 16px; border-radius:12px; background:rgba(0,240,255,0.1); border:1px solid var(--accent); color:var(--accent); font-size:13px; font-weight:700;">
+                    ⚡ গতি: হার্ডডিস্কের চেয়ে হাজার গুণ দ্রুতগতির!
+                  </div>
+                </div>
+                <div style="flex:1.1; display:flex; justify-content:center;">
+                  <svg width="420" height="300" viewBox="0 0 420 300" fill="none">
+                    <rect x="40" y="70" width="340" height="150" rx="14" fill="#111827" stroke="var(--accent)" stroke-width="2.5"/>
+                    <rect x="60" y="90" width="60" height="70" rx="6" fill="#1F2937" stroke="#38BDF8"/>
+                    <rect x="140" y="90" width="60" height="70" rx="6" fill="#1F2937" stroke="#38BDF8"/>
+                    <rect x="220" y="90" width="60" height="70" rx="6" fill="#1F2937" stroke="#38BDF8"/>
+                    <rect x="300" y="90" width="60" height="70" rx="6" fill="#1F2937" stroke="#38BDF8"/>
+                    <circle cx="90" cy="125" r="8" fill="#00F0FF" class="pulse-ring"/>
+                    <circle cx="170" cy="125" r="8" fill="#00F0FF" class="pulse-ring" style="animation-delay:0.3s;"/>
+                    <circle cx="250" cy="125" r="8" fill="#00F0FF" class="pulse-ring" style="animation-delay:0.6s;"/>
+                    <circle cx="330" cy="125" r="8" fill="#00F0FF" class="pulse-ring" style="animation-delay:0.9s;"/>
+                    <text x="210" y="195" text-anchor="middle" fill="var(--accent)" font-size="16" font-weight="800">ULTRA FAST RAM MODULE ⚡</text>
+                  </svg>
+                </div>
+              </div>
+            `
+          },
+          {
+            title: "প্রসেসর ও ধীরগতির মেমোরি",
+            script: "কারণ কম্পিউটারের প্রসেসর অত্যন্ত দ্রুতগতির, ধীরগতির হার্ডডিস্ক থেকে তথ্য আনতে গেলে প্রসেসরকে অলস বসে থাকতে হবে। তাই RAM চোখের পলকে প্রসেসরকে তথ্য সাপ্লাই দেয়।",
+            renderVisual: () => `
+              <div style="display:flex; width:100%; height:100%; align-items:center; justify-content:space-around;">
+                <div class="bob step-badge-card" style="width:250px; padding:18px; text-align:center;">
+                  <div style="font-size:36px;">💾</div>
+                  <div style="color:var(--accent-yellow); font-size:18px; font-weight:800; margin-top:8px;">হার্ডডিস্ক / SSD</div>
+                  <div style="color:var(--text-secondary); font-size:13px; margin-top:4px;">স্থায়ী কিন্তু ধীরগতির গুদামঘর</div>
+                </div>
+                <div style="color:var(--accent); font-size:32px; font-weight:900;">➔</div>
+                <div class="bob step-badge-card" style="width:250px; padding:18px; text-align:center; animation-delay:0.4s;">
+                  <div style="font-size:36px;">⚡</div>
+                  <div style="color:var(--accent); font-size:18px; font-weight:800; margin-top:8px;">RAM মেমোরি</div>
+                  <div style="color:var(--text-secondary); font-size:13px; margin-top:4px;">আলোর গতিতে প্রসেসরকে সাপ্লাই</div>
+                </div>
+                <div style="color:var(--accent); font-size:32px; font-weight:900;">➔</div>
+                <div class="bob step-badge-card" style="width:250px; padding:18px; text-align:center; animation-delay:0.8s;">
+                  <div style="font-size:36px;">🧠</div>
+                  <div style="color:var(--accent-purple); font-size:18px; font-weight:800; margin-top:8px;">CPU প্রসেসর</div>
+                  <div style="color:var(--text-secondary); font-size:13px; margin-top:4px;">সব ক্যালকুলেশন সম্পন্ন করে</div>
+                </div>
+              </div>
+            `
+          },
+          {
+            title: "কম্পিউটার বন্ধ করলেই তথ্য উবে যায়",
+            script: "কিন্তু মনে রাখবেন, কম্পিউটার বন্ধ করলেই RAM-এর সব তথ্য সম্পূর্ণ মুছে যায়। তাই কোনো ফাইল স্থায়ীভাবে সংরক্ষণের জন্য আমরা হার্ডডিস্ক বা SSD-তে সেভ করি।",
+            renderVisual: () => `
+              <div style="width:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:20px; text-align:center;">
+                <div style="font-size:48px;" class="bob">🔌</div>
+                <h1 style="font-size:36px; font-weight:800; color:#FFF;">বিদ্যুৎ চলে গেলেই RAM খালি!</h1>
+                <p style="color:var(--text-secondary); font-size:17px; max-width:680px;">RAM হলো উদ্বায়ী (Volatile) মেমোরি। বিদ্যুৎ বন্ধ হলে এর সব ডেটা মুছে যায়, তাই আমরা কন্ট্রোল+এস চেপে হার্ডডিস্কে সেভ করি।</p>
+                <div style="padding:12px 24px; border-radius:14px; background:rgba(239,68,68,0.15); border:1px solid #ef4444; color:#FFF; font-weight:700;">
+                  ⚠️ Save Your Work: স্থায়ীভাবে থাকবে শুধুমাত্র SSD বা Hard Disk-এ!
+                </div>
+              </div>
+            `
+          }
+        ]
       }
     ];
 
-    // Auto version refresh to force latest scenes & drive integration
-    const STUDIO_STORAGE_VERSION = 'v4.5_drive_live_sync';
+    // Auto version refresh to force all 3 projects & side-by-side studio
+    const STUDIO_STORAGE_VERSION = 'v5.0_all_3_projects_restored';
     if (localStorage.getItem('abm_studio_ver') !== STUDIO_STORAGE_VERSION) {
       localStorage.removeItem('abm_studio_projects');
       localStorage.setItem('abm_studio_ver', STUDIO_STORAGE_VERSION);
@@ -2164,12 +2240,7 @@
             selfBrowserSurface: 'include',
           });
 
-          // ── Step 3: স্টেজ ফ্রেমের সীমানা বের করো ──
-          const stage = document.getElementById('stageContainer');
-          const stageRect = stage.getBoundingClientRect();
-          const dpr = window.devicePixelRatio || 1;
-
-          // ── Step 4: স্ক্রিন ক্যাপচার ভিডিও একটা hidden <video> তে লোড করো ──
+          // ── Step 3: স্ক্রিন ক্যাপচার ভিডিও একটা hidden <video> তে লোড করো ──
           cropVideo = document.createElement('video');
           cropVideo.style.cssText = 'position:fixed;opacity:0;pointer-events:none;top:-9999px;';
           cropVideo.srcObject = displayStream;
@@ -2177,7 +2248,7 @@
           document.body.appendChild(cropVideo);
           await cropVideo.play();
 
-          // ── Step 5: স্টেজ ফ্রেমের সঠিক 16:9 স্কেলে Canvas বানাও ──
+          // ── Step 4: স্টেজ ফ্রেমের সঠিক 16:9 স্কেলে Canvas বানাও ──
           const stage = document.getElementById('stageContainer');
           const stageRect = stage.getBoundingClientRect();
           const vW = cropVideo.videoWidth || window.innerWidth;

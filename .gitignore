@@ -1,0 +1,6 @@
+*.mp4
+*.webm
+*.zip
+*.tar.gz
+extracted_frames/
+extracted_user_video/

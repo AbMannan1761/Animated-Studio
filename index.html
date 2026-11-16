@@ -7,7 +7,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;600&family=Hind+Siliguri:wght@500;600;700;800&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
-  <!-- html2canvas সরানো হয়েছে — getDisplayMedia দিয়ে সরাসরি ক্রপ করা হচ্ছে -->
+  <!-- MediaPipe Selfie Segmentation for Real-Time AI Camera Background Removal -->
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/selfie_segmentation/selfie_segmentation.js" crossorigin="anonymous"></script>
   <style>
     :root {
       --bg-base: #060810;
@@ -667,7 +668,7 @@
       text-shadow: 0 1px 4px rgba(0, 0, 0, 0.9);
     }
 
-    /* WEBCAM PIP BUBBLE */
+    /* WEBCAM PIP BUBBLE & AI BACKGROUND CUTOUT */
     #webcamBubble {
       position: absolute;
       bottom: 24px;
@@ -681,13 +682,64 @@
       z-index: 40;
       display: none;
       cursor: grab;
+      user-select: none;
       background: #000;
+      transition: width 0.25s ease, height 0.25s ease, border-radius 0.25s ease;
     }
+
+    #webcamBubble.bg-removed {
+      width: 220px;
+      height: 250px;
+      border-radius: 0 !important;
+      border: none !important;
+      background: transparent !important;
+      box-shadow: none !important;
+      overflow: visible !important;
+      filter: drop-shadow(0 10px 22px rgba(0, 0, 0, 0.8));
+    }
+
     #webcamBubble video {
+      display: none;
+    }
+
+    #webcamBubble canvas {
       width: 100%;
       height: 100%;
       object-fit: cover;
       transform: scaleX(-1);
+      display: block;
+      pointer-events: none;
+    }
+
+    .webcam-mode-btn {
+      position: absolute;
+      top: 6px;
+      right: 6px;
+      background: rgba(14, 19, 34, 0.85);
+      border: 1.5px solid var(--accent);
+      color: #fff;
+      border-radius: 50%;
+      width: 28px;
+      height: 28px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      font-size: 13px;
+      z-index: 50;
+      opacity: 0;
+      transition: opacity 0.2s, transform 0.15s, background 0.15s;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.5);
+    }
+
+    #webcamBubble:hover .webcam-mode-btn {
+      opacity: 1;
+    }
+
+    .webcam-mode-btn:hover {
+      transform: scale(1.15);
+      background: var(--accent);
+      color: #000;
     }
 
     /* KARAOKE WORD OVERLAY BOX (Exact match with user screenshot) */
@@ -1121,6 +1173,9 @@
       <button class="action-pill-btn" id="btnToggleCamera" onclick="toggleWebcam()">
         📷 ক্যামেরা চালু
       </button>
+      <button class="action-pill-btn" id="btnToggleBgRemove" onclick="toggleBgRemoval()" title="AI দিয়ে পেছনের ব্যাকগ্রাউন্ড মুছে শুধু মানুষকে রাখুন">
+        <span id="bgRemoveIcon">👤</span> <span id="bgRemoveText">রিমুভ BG</span>
+      </button>
       <button class="action-pill-btn" id="btnToggleKaraoke" onclick="toggleKaraokePractice()">
         🎤 কারাওকে সাব
       </button>
@@ -1226,9 +1281,13 @@
             <span class="stage-logo-text">ABM ACADEMY</span>
           </div>
 
-          <!-- Floating Live Webcam Overlay (PIP) -->
-          <div id="webcamBubble">
-            <video id="webcamVideo" autoplay playsinline muted></video>
+          <!-- Floating Live Webcam Overlay (PIP) with AI Cutout Canvas -->
+          <div id="webcamBubble" title="টেনে যেকোনো জায়গায় নিয়ে যেতে পারেন">
+            <video id="webcamVideo" autoplay playsinline muted style="display:none;"></video>
+            <canvas id="webcamCanvas"></canvas>
+            <button type="button" class="webcam-mode-btn" onclick="toggleBgRemoval()" title="ব্যাকগ্রাউন্ড রিমুভ / বাবল মোড পরিবর্তন">
+              <span id="bubbleModeIcon">✂️</span>
+            </button>
           </div>
 
           <!-- Karaoke Subtitle Pill Box (Sync Highlight) -->
@@ -2201,9 +2260,90 @@
       }
     }
 
-    // TOGGLE WEBCAM OVERLAY
+    // TOGGLE WEBCAM OVERLAY & AI BACKGROUND REMOVAL
     let isWebcamOn = false;
+    let isBgRemovalOn = false;
     let webcamStream = null;
+    let selfieSegmentation = null;
+    let isSegmentingFrame = false;
+    let webcamAnimFrameId = null;
+
+    function initSelfieSegmentation() {
+      if (selfieSegmentation) return Promise.resolve(selfieSegmentation);
+      if (typeof SelfieSegmentation === 'undefined') {
+        return Promise.reject(new Error('MediaPipe script is still loading or unavailable'));
+      }
+      selfieSegmentation = new SelfieSegmentation({
+        locateFile: (file) => `https://cdn.jsdelivr.net/npm/@mediapipe/selfie_segmentation/${file}`
+      });
+      selfieSegmentation.setOptions({
+        modelSelection: 1 // 1: landscape high quality cutout
+      });
+      selfieSegmentation.onResults(onSelfieSegmentationResults);
+      return selfieSegmentation.initialize ? selfieSegmentation.initialize().then(() => selfieSegmentation) : Promise.resolve(selfieSegmentation);
+    }
+
+    function onSelfieSegmentationResults(results) {
+      const canvas = document.getElementById('webcamCanvas');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+
+      const w = results.image.width || 480;
+      const h = results.image.height || 480;
+      if (canvas.width !== w || canvas.height !== h) {
+        canvas.width = w;
+        canvas.height = h;
+      }
+
+      ctx.save();
+      ctx.clearRect(0, 0, w, h);
+
+      if (isBgRemovalOn) {
+        // 1. Draw human segmentation mask (white silhouette)
+        ctx.drawImage(results.segmentationMask, 0, 0, w, h);
+        // 2. Composite source-in: keeps video pixels only inside human mask!
+        ctx.globalCompositeOperation = 'source-in';
+        ctx.drawImage(results.image, 0, 0, w, h);
+      } else {
+        ctx.drawImage(results.image, 0, 0, w, h);
+      }
+      ctx.restore();
+    }
+
+    async function webcamRenderLoop() {
+      if (!isWebcamOn) return;
+      const video = document.getElementById('webcamVideo');
+      const canvas = document.getElementById('webcamCanvas');
+
+      if (video && video.readyState >= 2 && canvas) {
+        if (isBgRemovalOn && selfieSegmentation) {
+          if (!isSegmentingFrame) {
+            isSegmentingFrame = true;
+            try {
+              await selfieSegmentation.send({ image: video });
+            } catch(err) {
+              console.warn('Segmentation frame error:', err);
+            }
+            isSegmentingFrame = false;
+          }
+        } else if (!isBgRemovalOn) {
+          // Fast native 60fps render
+          const ctx = canvas.getContext('2d');
+          const w = video.videoWidth || 480;
+          const h = video.videoHeight || 480;
+          if (canvas.width !== w || canvas.height !== h) {
+            canvas.width = w;
+            canvas.height = h;
+          }
+          ctx.save();
+          ctx.clearRect(0, 0, w, h);
+          ctx.drawImage(video, 0, 0, w, h);
+          ctx.restore();
+        }
+      }
+      webcamAnimFrameId = requestAnimationFrame(webcamRenderLoop);
+    }
+
     async function toggleWebcam() {
       const bubble = document.getElementById('webcamBubble');
       const video = document.getElementById('webcamVideo');
@@ -2211,14 +2351,22 @@
 
       if (!isWebcamOn) {
         try {
-          webcamStream = await navigator.mediaDevices.getUserMedia({ video: { width: 480, height: 480 }, audio: false });
-          if (video) video.srcObject = webcamStream;
+          webcamStream = await navigator.mediaDevices.getUserMedia({ 
+            video: { width: { ideal: 640 }, height: { ideal: 480 }, frameRate: { ideal: 30 } }, 
+            audio: false 
+          });
+          if (video) {
+            video.srcObject = webcamStream;
+            video.play();
+          }
           if (bubble) bubble.style.display = 'block';
           if (btn) {
             btn.classList.add('active');
             btn.innerHTML = '📷 ক্যামেরা বন্ধ';
           }
           isWebcamOn = true;
+          cancelAnimationFrame(webcamAnimFrameId);
+          webcamAnimFrameId = requestAnimationFrame(webcamRenderLoop);
         } catch(err) {
           alert('ক্যামেরা চালু করা যায়নি: ' + err.message);
         }
@@ -2226,12 +2374,56 @@
         if (webcamStream) {
           webcamStream.getTracks().forEach(t => t.stop());
         }
+        if (webcamAnimFrameId) cancelAnimationFrame(webcamAnimFrameId);
         if (bubble) bubble.style.display = 'none';
         if (btn) {
           btn.classList.remove('active');
           btn.innerHTML = '📷 ক্যামেরা চালু';
         }
         isWebcamOn = false;
+      }
+    }
+
+    async function toggleBgRemoval() {
+      if (!isWebcamOn) {
+        await toggleWebcam();
+        if (!isWebcamOn) return;
+      }
+
+      isBgRemovalOn = !isBgRemovalOn;
+
+      const bubble = document.getElementById('webcamBubble');
+      const btn = document.getElementById('btnToggleBgRemove');
+      const text = document.getElementById('bgRemoveText');
+      const bubbleIcon = document.getElementById('bubbleModeIcon');
+
+      if (isBgRemovalOn) {
+        if (btn) btn.classList.add('active');
+        if (text) text.innerText = 'AI লোড হচ্ছে...';
+        if (bubble) bubble.classList.add('bg-removed');
+        if (bubbleIcon) bubbleIcon.innerText = '🔘';
+
+        if (!selfieSegmentation) {
+          try {
+            await initSelfieSegmentation();
+            if (text) text.innerText = 'BG রিমুভ (অন)';
+          } catch(err) {
+            console.error('SelfieSegmentation initialization failed:', err);
+            alert('AI ব্যাকগ্রাউন্ড রিমুভ ইঞ্জিন প্রস্তুত করতে সমস্যা হয়েছে। ইন্টারনেট কানেকশন চেক করুন।');
+            isBgRemovalOn = false;
+            if (btn) btn.classList.remove('active');
+            if (text) text.innerText = 'রিমুভ BG';
+            if (bubble) bubble.classList.remove('bg-removed');
+            if (bubbleIcon) bubbleIcon.innerText = '✂️';
+          }
+        } else {
+          if (text) text.innerText = 'BG রিমুভ (অন)';
+        }
+      } else {
+        if (btn) btn.classList.remove('active');
+        if (text) text.innerText = 'রিমুভ BG';
+        if (bubble) bubble.classList.remove('bg-removed');
+        if (bubbleIcon) bubbleIcon.innerText = '✂️';
       }
     }
 
@@ -2243,6 +2435,7 @@
       let startX, startY, origX, origY;
 
       el.addEventListener('mousedown', (e) => {
+        if (e.target.closest('.webcam-mode-btn')) return;
         isDragging = true;
         startX = e.clientX;
         startY = e.clientY;
@@ -2679,7 +2872,7 @@
 
             // ওয়েবক্যাম PIP থাকলে সেটা শুধুমাত্র ফ্রেমের ভেতরে আঁকো
             if (isWebcamOn) {
-              const vid = document.getElementById('webcamVideo');
+              const camSource = document.getElementById('webcamCanvas') || document.getElementById('webcamVideo');
               const bRect = document.getElementById('webcamBubble').getBoundingClientRect();
               const px = (bRect.left - r.left) * scaleX;
               const py = (bRect.top  - r.top)  * scaleY;
@@ -2688,10 +2881,21 @@
               const pr = pw / 2;
 
               captureCtx.save();
-              captureCtx.beginPath();
-              captureCtx.arc(px + pr, py + pr, pr, 0, Math.PI * 2);
-              captureCtx.clip();
-              captureCtx.drawImage(vid, px, py, pw, ph);
+              if (!isBgRemovalOn) {
+                // Circular clipping when background is present
+                captureCtx.beginPath();
+                captureCtx.arc(px + pr, py + pr, pr, 0, Math.PI * 2);
+                captureCtx.clip();
+              } else {
+                // When background is removed, soft drop shadow for depth
+                captureCtx.shadowColor = 'rgba(0, 0, 0, 0.65)';
+                captureCtx.shadowBlur = 18;
+                captureCtx.shadowOffsetY = 6;
+              }
+              // Mirror the webcam frame horizontally (scaleX -1)
+              captureCtx.translate(px + pw, py);
+              captureCtx.scale(-1, 1);
+              captureCtx.drawImage(camSource, 0, 0, pw, ph);
               captureCtx.restore();
             }
 

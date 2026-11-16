@@ -667,6 +667,20 @@
       box-sizing: border-box;
     }
 
+    @keyframes sceneSlideFadeIn {
+      0% {
+        opacity: 0.2;
+        transform: scale(0.985);
+      }
+      100% {
+        opacity: 1;
+        transform: scale(1);
+      }
+    }
+    .scene-fade-in {
+      animation: sceneSlideFadeIn 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+
     .scene-viewport > div {
       width: 100% !important;
       height: 100% !important;
@@ -1024,6 +1038,9 @@
       </button>
       <button class="action-pill-btn" id="btnToggleKaraoke" onclick="toggleKaraokePractice()">
         🎤 কারাওকে সাব
+      </button>
+      <button class="action-pill-btn active" id="btnToggleSound" onclick="toggleTransitionSound()" title="দৃশ্যপট পরিবর্তনের অ্যানিমেটেড সাউন্ড অন/অফ">
+        🔊 <span id="soundText">সাউন্ড চালু</span>
       </button>
       <button class="btn-record" id="btnRecord" onclick="toggleRecording()">
         <span id="recDot">🔴</span>
@@ -1725,6 +1742,137 @@
       setTimeout(() => updateThemeUI(true), 50);
     }
 
+    // ===== ANIMATED SCENE TRANSITION SOUND SYSTEM (WEB AUDIO API) =====
+    let isSoundEnabled = true;
+    let audioCtx = null;
+
+    function getAudioContext() {
+      if (!audioCtx) {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (AudioCtx) audioCtx = new AudioCtx();
+      }
+      if (audioCtx && audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+      return audioCtx;
+    }
+
+    function toggleTransitionSound() {
+      isSoundEnabled = !isSoundEnabled;
+      try {
+        localStorage.setItem('abm_studio_sound', isSoundEnabled ? 'true' : 'false');
+      } catch(e) {}
+      updateSoundUI(isSoundEnabled);
+      if (isSoundEnabled) {
+        playTransitionSound('next');
+      }
+    }
+
+    function updateSoundUI(enabled) {
+      const btn = document.getElementById('btnToggleSound');
+      const text = document.getElementById('soundText');
+      if (!btn) return;
+      if (enabled) {
+        btn.classList.add('active');
+        if (text) text.innerText = 'সাউন্ড চালু';
+      } else {
+        btn.classList.remove('active');
+        if (text) text.innerText = 'সাউন্ড অফ';
+      }
+    }
+
+    // Auto load saved sound setting
+    if (localStorage.getItem('abm_studio_sound') === 'false') {
+      isSoundEnabled = false;
+      setTimeout(() => updateSoundUI(false), 50);
+    }
+
+    // HIGH QUALITY ANIMATED TRANSITION SOUND SYNTHESIZER
+    // Layer 1: Bandpass filtered whoosh/wind swoosh
+    // Layer 2: Uplifting dual-tone futuristic chime (major chord sparkle)
+    // Layer 3: Tactile transient pop for punchy physical feel
+    function playTransitionSound(direction = 'next') {
+      if (!isSoundEnabled) return;
+      try {
+        const ctx = getAudioContext();
+        if (!ctx) return;
+        const now = ctx.currentTime;
+
+        // LAYER 1: WHOOSH (Filtered noise sweep)
+        const bufferSize = Math.floor(ctx.sampleRate * 0.22);
+        const noiseBuffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+        const output = noiseBuffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) {
+          output[i] = Math.random() * 2 - 1;
+        }
+        const whiteNoise = ctx.createBufferSource();
+        whiteNoise.buffer = noiseBuffer;
+
+        const filter = ctx.createBiquadFilter();
+        filter.type = 'bandpass';
+        filter.Q.setValueAtTime(2.2, now);
+
+        if (direction === 'next') {
+          filter.frequency.setValueAtTime(320, now);
+          filter.frequency.exponentialRampToValueAtTime(1900, now + 0.11);
+          filter.frequency.exponentialRampToValueAtTime(420, now + 0.22);
+        } else {
+          filter.frequency.setValueAtTime(1700, now);
+          filter.frequency.exponentialRampToValueAtTime(300, now + 0.2);
+        }
+
+        const noiseGain = ctx.createGain();
+        noiseGain.gain.setValueAtTime(0.001, now);
+        noiseGain.gain.linearRampToValueAtTime(0.18, now + 0.06);
+        noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
+
+        whiteNoise.connect(filter);
+        filter.connect(noiseGain);
+        noiseGain.connect(ctx.destination);
+        whiteNoise.start(now);
+        whiteNoise.stop(now + 0.23);
+
+        // LAYER 2: CHIME (Crystal harmonics)
+        const notes = direction === 'next'
+          ? [{ freq: 659.25, time: 0.02, dur: 0.20, vol: 0.14 }, { freq: 987.77, time: 0.08, dur: 0.28, vol: 0.18 }]
+          : [{ freq: 880.00, time: 0.02, dur: 0.18, vol: 0.16 }, { freq: 587.33, time: 0.08, dur: 0.24, vol: 0.12 }];
+
+        notes.forEach(n => {
+          const osc = ctx.createOscillator();
+          const g = ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(n.freq, now + n.time);
+          osc.frequency.exponentialRampToValueAtTime(n.freq * (direction === 'next' ? 1.05 : 0.95), now + n.time + 0.05);
+
+          g.gain.setValueAtTime(0.0001, now + n.time);
+          g.gain.linearRampToValueAtTime(n.vol, now + n.time + 0.015);
+          g.gain.exponentialRampToValueAtTime(0.0001, now + n.time + n.dur);
+
+          osc.connect(g);
+          g.connect(ctx.destination);
+          osc.start(now + n.time);
+          osc.stop(now + n.time + n.dur + 0.02);
+        });
+
+        // LAYER 3: SUB-TRANSIENT POP
+        const pop = ctx.createOscillator();
+        const popGain = ctx.createGain();
+        pop.type = 'triangle';
+        pop.frequency.setValueAtTime(direction === 'next' ? 280 : 200, now);
+        pop.frequency.exponentialRampToValueAtTime(70, now + 0.07);
+
+        popGain.gain.setValueAtTime(0.16, now);
+        popGain.gain.exponentialRampToValueAtTime(0.001, now + 0.07);
+
+        pop.connect(popGain);
+        popGain.connect(ctx.destination);
+        pop.start(now);
+        pop.stop(now + 0.08);
+      } catch(err) {
+        console.warn('Audio transition error:', err);
+      }
+    }
+
     // SWITCH VIEW TABS
     function switchView(viewName) {
       document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
@@ -1787,9 +1935,12 @@
           updateKaraokeText(scene.script || '');
         }
 
-        // Render Visual
+        // Render Visual with smooth animation transition
         const viewport = document.getElementById('sceneViewport');
         if (viewport) {
+          viewport.classList.remove('scene-fade-in');
+          void viewport.offsetWidth;
+          viewport.classList.add('scene-fade-in');
           viewport.innerHTML = scene.renderVisual ? scene.renderVisual() : buildDynamicSceneVisual(scene, currentSceneIndex, currentProject.category);
         }
 
@@ -1806,7 +1957,13 @@
           currentProject.scenes.forEach((_, idx) => {
             const dot = document.createElement('div');
             dot.className = 'dot-item' + (idx === currentSceneIndex ? ' active' : '');
-            dot.onclick = () => { currentSceneIndex = idx; renderActiveScene(); };
+            dot.onclick = () => {
+              if (currentSceneIndex !== idx) {
+                playTransitionSound(idx > currentSceneIndex ? 'next' : 'prev');
+                currentSceneIndex = idx;
+                renderActiveScene();
+              }
+            };
             dotsRow.appendChild(dot);
           });
         }
@@ -1818,6 +1975,7 @@
     function navigateScene(delta) {
       const target = currentSceneIndex + delta;
       if (target >= 0 && target < currentProject.scenes.length) {
+        playTransitionSound(delta > 0 ? 'next' : 'prev');
         currentSceneIndex = target;
         renderActiveScene();
       }
@@ -1836,6 +1994,17 @@
         navigateScene(-1);
       }
     });
+
+    // UNLOCK AUDIO ON FIRST GESTURE
+    const unlockWebAudio = () => {
+      getAudioContext();
+      window.removeEventListener('click', unlockWebAudio);
+      window.removeEventListener('keydown', unlockWebAudio);
+      window.removeEventListener('touchstart', unlockWebAudio);
+    };
+    window.addEventListener('click', unlockWebAudio);
+    window.addEventListener('keydown', unlockWebAudio);
+    window.addEventListener('touchstart', unlockWebAudio);
 
     // IN-PLACE SCRIPT EDIT & PERSIST
     function saveScriptEdit() {

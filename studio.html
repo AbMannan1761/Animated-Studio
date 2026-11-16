@@ -400,11 +400,11 @@
       box-sizing: border-box !important;
     }
 
-    /* LEFT TELEPROMPTER SIDEBAR */
+    /* LEFT TELEPROMPTER SIDEBAR (EXPANDED READING AREA) */
     .teleprompter-sidebar {
-      flex: 0 0 320px;
-      width: 320px;
-      max-width: 340px;
+      flex: 0 0 360px;
+      width: 360px;
+      max-width: 400px;
       height: 100%;
       min-height: 0;
       display: flex;
@@ -413,8 +413,8 @@
       background: var(--bg-surface);
       border: 1.5px solid var(--border-color);
       border-radius: 14px;
-      padding: 12px 14px;
-      gap: 10px;
+      padding: 14px;
+      gap: 12px;
       box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
       box-sizing: border-box;
       overflow: hidden;
@@ -424,29 +424,41 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      padding-bottom: 8px;
+      padding-bottom: 10px;
       border-bottom: 1px solid var(--border-color);
       flex-shrink: 0;
     }
 
     .tele-script-scroll {
       flex: 1;
+      height: 100%;
       min-height: 0;
       overflow-y: auto;
-      padding-right: 4px;
+      padding: 4px;
+      background: rgba(0, 0, 0, 0.25);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: 10px;
+      box-sizing: border-box;
+    }
+
+    body.light-theme .tele-script-scroll {
+      background: #f8fafc;
+      border-color: #e2e8f0;
     }
 
     .tele-script-content {
       color: var(--text-main);
-      font-size: 1.12rem;
+      font-size: 1.25rem;
       font-weight: 600;
-      line-height: 1.55;
+      line-height: 1.65;
       outline: none;
-      padding: 6px 8px;
-      border-radius: 6px;
+      padding: 10px 12px;
+      border-radius: 8px;
       transition: background 0.2s;
       white-space: pre-wrap;
       word-break: break-word;
+      min-height: 100%;
+      box-sizing: border-box;
     }
     .tele-script-content:focus {
       background: rgba(0, 240, 255, 0.08);
@@ -720,24 +732,6 @@
       flex-direction: column;
       gap: 0;
       min-width: 0;
-    }
-
-    .tele-script-content {
-      color: #FFFFFF;
-      font-size: 0.95rem;
-      font-weight: 700;
-      line-height: 1.35;
-      text-shadow: 0 1px 4px rgba(0, 0, 0, 0.6);
-      outline: none;
-      padding: 2px 4px;
-      border-radius: 4px;
-      transition: background 0.2s;
-      max-height: 48px;
-      overflow-y: auto;
-    }
-    .tele-script-content:focus {
-      background: rgba(0, 240, 255, 0.08);
-      box-shadow: 0 0 0 1.5px var(--accent);
     }
 
     /* PAGINATION DOTS */
@@ -1663,8 +1657,8 @@
       }
     ];
 
-    // Auto version refresh to force all 3 projects & side-by-side studio
-    const STUDIO_STORAGE_VERSION = 'v5.0_all_3_projects_restored';
+    // Auto version refresh to force expanded script box
+    const STUDIO_STORAGE_VERSION = 'v5.2_expanded_script_box';
     if (localStorage.getItem('abm_studio_ver') !== STUDIO_STORAGE_VERSION) {
       localStorage.removeItem('abm_studio_projects');
       localStorage.setItem('abm_studio_ver', STUDIO_STORAGE_VERSION);

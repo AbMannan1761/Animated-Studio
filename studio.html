@@ -1082,29 +1082,20 @@
           <path d="M12 2L4 5v6.09c0 5.05 3.41 9.76 8 10.91 4.59-1.15 8-5.86 8-10.91V5l-8-3zm1 14h-2v-2h2v2zm0-4h-2V7h2v5z"/>
         </svg>
       </div>
-      <div class="brand-title">ABM Academy • <span>লাইভ মোশন স্টুডিও</span></div>
+      <div class="brand-title">ABM Academy</div>
     </div>
 
-    <!-- TABS -->
+    <!-- STUDIO TITLE BADGE -->
     <div class="view-tabs">
-      <button class="tab-btn active" id="tabPresenter" onclick="switchView('presenter')">
+      <div class="tab-btn active" id="tabPresenter" style="cursor:default;">
         🎬 লাইভ মোশন স্টুডিও
-      </button>
-      <button class="tab-btn" id="tabGenerator" onclick="switchView('generator')">
-        ✍️ টেক্সট টু সিন জেনারেটর
-      </button>
-      <button class="tab-btn" id="tabLibrary" onclick="switchView('library')">
-        📁 প্রজেক্ট লাইব্রেরি
-      </button>
+      </div>
     </div>
 
     <!-- ACTIONS -->
     <div class="header-actions">
       <button class="action-pill-btn active" id="btnToggleBorder" onclick="toggleStageBorder()">
         🖼️ ফ্রেম বর্ডার
-      </button>
-      <button class="action-pill-btn" id="btnToggleCamera" onclick="toggleWebcam()">
-        📷 ক্যামেরা চালু
       </button>
       <button class="action-pill-btn" id="btnToggleKaraoke" onclick="toggleKaraokePractice()">
         🎤 কারাওকে সাব
@@ -2015,15 +2006,21 @@
       document.querySelectorAll('.view-section').forEach(sec => sec.classList.remove('active'));
 
       if (viewName === 'presenter') {
-        document.getElementById('tabPresenter').classList.add('active');
-        document.getElementById('viewPresenter').classList.add('active');
+        const tab = document.getElementById('tabPresenter');
+        const view = document.getElementById('viewPresenter');
+        if (tab) tab.classList.add('active');
+        if (view) view.classList.add('active');
       } else if (viewName === 'generator') {
-        document.getElementById('tabGenerator').classList.add('active');
-        document.getElementById('viewGenerator').classList.add('active');
+        const tab = document.getElementById('tabGenerator');
+        const view = document.getElementById('viewGenerator');
+        if (tab) tab.classList.add('active');
+        if (view) view.classList.add('active');
       } else if (viewName === 'library') {
-        document.getElementById('tabLibrary').classList.add('active');
-        document.getElementById('viewLibrary').classList.add('active');
-        renderLibrary();
+        const tab = document.getElementById('tabLibrary');
+        const view = document.getElementById('viewLibrary');
+        if (tab) tab.classList.add('active');
+        if (view) view.classList.add('active');
+        if (typeof renderLibrary === 'function') renderLibrary();
       }
     }
 
@@ -2184,10 +2181,12 @@
       if (!isWebcamOn) {
         try {
           webcamStream = await navigator.mediaDevices.getUserMedia({ video: { width: 480, height: 480 }, audio: false });
-          video.srcObject = webcamStream;
-          bubble.style.display = 'block';
-          btn.classList.add('active');
-          btn.innerHTML = '📷 ক্যামেরা বন্ধ';
+          if (video) video.srcObject = webcamStream;
+          if (bubble) bubble.style.display = 'block';
+          if (btn) {
+            btn.classList.add('active');
+            btn.innerHTML = '📷 ক্যামেরা বন্ধ';
+          }
           isWebcamOn = true;
         } catch(err) {
           alert('ক্যামেরা চালু করা যায়নি: ' + err.message);
@@ -2196,9 +2195,11 @@
         if (webcamStream) {
           webcamStream.getTracks().forEach(t => t.stop());
         }
-        bubble.style.display = 'none';
-        btn.classList.remove('active');
-        btn.innerHTML = '📷 ক্যামেরা চালু';
+        if (bubble) bubble.style.display = 'none';
+        if (btn) {
+          btn.classList.remove('active');
+          btn.innerHTML = '📷 ক্যামেরা চালু';
+        }
         isWebcamOn = false;
       }
     }

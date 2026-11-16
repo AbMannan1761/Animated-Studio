@@ -1185,15 +1185,44 @@
       </div>
     </div>
 
-    <!-- VIEW 3: PROJECT LIBRARY -->
+    <!-- VIEW 3: PROJECT LIBRARY (GOOGLE DRIVE INTEGRATED) -->
     <div class="view-section" id="viewLibrary">
-      <div class="project-library-card" style="max-width:960px; margin:0 auto; width:100%;">
+      <div class="project-library-card" style="max-width:960px; margin:0 auto; width:100%; display:flex; flex-direction:column; gap:16px;">
+        
+        <!-- Google Drive Cloud Banner -->
+        <div style="background:linear-gradient(135deg, rgba(2, 132, 199, 0.18), rgba(147, 51, 234, 0.18)); border:1.5px solid var(--accent); border-radius:14px; padding:16px 20px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;">
+          <div style="display:flex; align-items:center; gap:12px;">
+            <div style="width:44px; height:44px; border-radius:10px; background:#fff; display:flex; align-items:center; justify-content:center; box-shadow:0 4px 12px rgba(0,0,0,0.2);">
+              <svg viewBox="0 0 87.3 78" width="28" height="28">
+                <path d="m6.6 66.85 3.85 6.65c.8 1.4 1.95 2.5 3.3 3.3l13.75-23.8h-27.5c0 1.55.4 3.1 1.2 4.5z" fill="#0066da"/>
+                <path d="m43.65 25-13.75-23.8c-1.35.8-2.5 1.9-3.3 3.3l-25.4 44c-.8 1.4-1.2 2.95-1.2 4.5h27.5z" fill="#00ac47"/>
+                <path d="m73.55 76.8c1.35-.8 2.5-1.9 3.3-3.3l1.6-2.75 7.65-13.25c.8-1.4 1.2-2.95 1.2-4.5h-27.502l5.852 11.5z" fill="#ea4335"/>
+                <path d="m43.65 25 13.75-23.8c-1.35-.8-2.9-1.2-4.5-1.2h-18.5c-1.6 0-3.15.45-4.5 1.25z" fill="#00832d"/>
+                <path d="m59.8 53h-32.3l-13.75 23.8c1.35.8 2.9 1.2 4.5 1.2h50.8c1.6 0 3.15-.45 4.5-1.2z" fill="#2684fc"/>
+                <path d="m73.4 26.5-12.7-22c-.8-1.4-1.95-2.5-3.3-3.3l-13.75 23.8 16.15 28h27.45c0-1.55-.4-3.1-1.2-4.5z" fill="#ffba00"/>
+              </svg>
+            </div>
+            <div>
+              <div style="font-weight:800; font-size:16px; color:#fff;">Google Drive ক্লাউড ফোল্ডার কানেক্টেড ✅</div>
+              <div style="font-size:12px; color:var(--text-secondary);">ফোল্ডার আইডি: <code style="color:var(--accent); font-family:'Fira Code'; font-size:11px;">1P6FZujIjofuwV-QLEAQBqTREJWHU09Pd</code></div>
+            </div>
+          </div>
+          <div style="display:flex; gap:10px; flex-wrap:wrap;">
+            <button class="tele-nav-btn" onclick="saveProjectToGoogleDrive()" style="background:var(--accent); color:#000; border:none; padding:8px 16px; font-weight:800; cursor:pointer;">
+              ☁️ প্রজেক্ট ড্রাইভে সেভ করুন
+            </button>
+            <a href="https://drive.google.com/drive/folders/1P6FZujIjofuwV-QLEAQBqTREJWHU09Pd?usp=drive_link" target="_blank" class="tele-nav-btn" style="text-decoration:none; display:flex; align-items:center; gap:6px;">
+              📂 ড্রাইভ ফোল্ডার খুলুন ↗
+            </a>
+          </div>
+        </div>
+
         <div class="gen-title" style="justify-content:space-between;">
           <span>📁 সংরক্ষিত প্রজেক্ট লাইব্রেরি</span>
           <div style="display:flex; gap:10px;">
             <input type="file" id="jsonFileInput" accept=".json" style="display:none;" onchange="importProjectFromJSON(event)">
             <button class="action-pill-btn" onclick="document.getElementById('jsonFileInput').click()">
-              📤 JSON ইমপোর্ট
+              📥 ড্রাইভ / পিসি থেকে ইমপোর্ট
             </button>
             <span style="font-size:14px; color:var(--text-secondary); display:flex; align-items:center;" id="libraryCount">২টি প্রজেক্ট</span>
           </div>
@@ -1201,7 +1230,7 @@
         <p style="font-size:14px; color:var(--text-secondary);">
           নিচের যেকোনো প্রজেক্টে ক্লিক করে সরাসরি লাইভ মোশন স্টুডিওতে লোড করুন:
         </p>
-        <div id="projectListContainer" style="display:flex; flex-direction:column; gap:14px; margin-top:10px;">
+        <div id="projectListContainer" style="display:flex; flex-direction:column; gap:14px;">
           <!-- Injected via JS -->
         </div>
       </div>
@@ -1558,8 +1587,8 @@
       }
     ];
 
-    // Auto version refresh to force split layout and presentation updates
-    const STUDIO_STORAGE_VERSION = 'v4.0_split_screen_studio';
+    // Auto version refresh to force latest scenes & drive integration
+    const STUDIO_STORAGE_VERSION = 'v4.5_drive_live_sync';
     if (localStorage.getItem('abm_studio_ver') !== STUDIO_STORAGE_VERSION) {
       localStorage.removeItem('abm_studio_projects');
       localStorage.setItem('abm_studio_ver', STUDIO_STORAGE_VERSION);
@@ -1626,36 +1655,76 @@
       }
     }
 
+    // ===== GOOGLE DRIVE INTEGRATION =====
+    const GOOGLE_DRIVE_FOLDER_URL = "https://drive.google.com/drive/folders/1P6FZujIjofuwV-QLEAQBqTREJWHU09Pd?usp=drive_link";
+
+    function saveProjectToGoogleDrive() {
+      if (!currentProject) return;
+      const fileName = `${currentProject.id || 'project'}_backup.json`;
+      const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(currentProject, null, 2));
+      const downloadAnchor = document.createElement('a');
+      downloadAnchor.setAttribute("href", dataStr);
+      downloadAnchor.setAttribute("download", fileName);
+      document.body.appendChild(downloadAnchor);
+      downloadAnchor.click();
+      downloadAnchor.remove();
+
+      setTimeout(() => {
+        window.open(GOOGLE_DRIVE_FOLDER_URL, '_blank');
+      }, 400);
+
+      alert(`✓ প্রজেক্ট ফাইলটি (${fileName}) ডাউনলোড হয়েছে!\nগুগল ড্রাইভের ফোল্ডারটি ওপেন হচ্ছে—সেখানে ফাইলটি আপলোড/ড্রপ করে রাখুন।`);
+    }
+
     // RENDER ACTIVE SCENE IN PRESENTER
     function renderActiveScene() {
-      const scene = currentProject.scenes[currentSceneIndex];
-      const total = currentProject.scenes.length;
+      try {
+        if (!currentProject || !currentProject.scenes || currentProject.scenes.length === 0) return;
+        if (currentSceneIndex >= currentProject.scenes.length) currentSceneIndex = 0;
 
-      document.getElementById('stepCounter').innerText = `ধাপ ০${currentSceneIndex + 1} / ০${total}`;
-      const titleBadge = document.getElementById('sceneTitleBadge');
-      if (titleBadge) titleBadge.innerText = `সিন ০${currentSceneIndex + 1}/০${total} • ${scene.title}`;
-      document.getElementById('teleprompterText').innerText = scene.script;
+        const scene = currentProject.scenes[currentSceneIndex];
+        const total = currentProject.scenes.length;
 
-      // Update Karaoke Subtitle
-      updateKaraokeText(scene.script);
+        const counter = document.getElementById('stepCounter');
+        if (counter) counter.innerText = `ধাপ ০${currentSceneIndex + 1} / ০${total}`;
 
-      // Render Visual
-      const viewport = document.getElementById('sceneViewport');
-      viewport.innerHTML = scene.renderVisual ? scene.renderVisual() : buildDynamicSceneVisual(scene, currentSceneIndex, currentProject.category);
+        const titleBadge = document.getElementById('sceneTitleBadge');
+        if (titleBadge) titleBadge.innerText = `সিন ০${currentSceneIndex + 1}/০${total} • ${scene.title || ''}`;
 
-      // Buttons
-      document.getElementById('btnPrev').disabled = currentSceneIndex === 0;
-      document.getElementById('btnNext').disabled = currentSceneIndex === total - 1;
+        const tele = document.getElementById('teleprompterText');
+        if (tele) tele.innerText = scene.script || '';
 
-      // Dots
-      const dotsRow = document.getElementById('dotsRow');
-      dotsRow.innerHTML = '';
-      currentProject.scenes.forEach((_, idx) => {
-        const dot = document.createElement('div');
-        dot.className = 'dot-item' + (idx === currentSceneIndex ? ' active' : '');
-        dot.onclick = () => { currentSceneIndex = idx; renderActiveScene(); };
-        dotsRow.appendChild(dot);
-      });
+        // Update Karaoke Subtitle
+        if (typeof updateKaraokeText === 'function') {
+          updateKaraokeText(scene.script || '');
+        }
+
+        // Render Visual
+        const viewport = document.getElementById('sceneViewport');
+        if (viewport) {
+          viewport.innerHTML = scene.renderVisual ? scene.renderVisual() : buildDynamicSceneVisual(scene, currentSceneIndex, currentProject.category);
+        }
+
+        // Buttons
+        const prev = document.getElementById('btnPrev');
+        if (prev) prev.disabled = currentSceneIndex === 0;
+        const next = document.getElementById('btnNext');
+        if (next) next.disabled = currentSceneIndex === total - 1;
+
+        // Dots
+        const dotsRow = document.getElementById('dotsRow');
+        if (dotsRow) {
+          dotsRow.innerHTML = '';
+          currentProject.scenes.forEach((_, idx) => {
+            const dot = document.createElement('div');
+            dot.className = 'dot-item' + (idx === currentSceneIndex ? ' active' : '');
+            dot.onclick = () => { currentSceneIndex = idx; renderActiveScene(); };
+            dotsRow.appendChild(dot);
+          });
+        }
+      } catch(err) {
+        console.error('renderActiveScene error:', err);
+      }
     }
 
     function navigateScene(delta) {
@@ -2270,8 +2339,10 @@
       a.click();
     }
 
-    // INITIALIZE
+    // INITIALIZE & AUTO LOAD SCENE 1
     renderActiveScene();
+    window.addEventListener('load', renderActiveScene);
+    setTimeout(renderActiveScene, 100);
   </script>
 </body>
 </html>

@@ -324,6 +324,76 @@
       box-shadow: 0 0 8px rgba(0, 240, 255, 0.4);
     }
 
+    /* SOUND PRESET SELECTOR */
+    .sound-select-box {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      padding: 2px 7px;
+      border-radius: 9px;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid var(--border-color);
+      transition: all 0.2s;
+    }
+    .sound-select-box:hover {
+      border-color: var(--accent);
+    }
+    .sound-select-dropdown {
+      background: transparent;
+      border: none;
+      color: #fff;
+      font-size: 0.72rem;
+      font-weight: 700;
+      cursor: pointer;
+      outline: none;
+      font-family: inherit;
+      padding: 1px 0;
+    }
+    .sound-select-dropdown option {
+      background: #0f172a;
+      color: #fff;
+    }
+    .sound-preview-btn {
+      background: rgba(0, 240, 255, 0.15);
+      border: 1px solid var(--accent);
+      color: var(--accent);
+      border-radius: 6px;
+      font-size: 0.68rem;
+      font-weight: 700;
+      padding: 2px 7px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 2px;
+      transition: all 0.15s;
+    }
+    .sound-preview-btn:hover {
+      background: var(--accent);
+      color: #000;
+      transform: scale(1.04);
+    }
+
+    body.light-theme .sound-select-box {
+      background: #f1f5f9;
+      border-color: #cbd5e1;
+    }
+    body.light-theme .sound-select-dropdown {
+      color: #1e293b;
+    }
+    body.light-theme .sound-select-dropdown option {
+      background: #ffffff;
+      color: #0f172a;
+    }
+    body.light-theme .sound-preview-btn {
+      background: rgba(2, 132, 199, 0.12);
+      border-color: #0284c7;
+      color: #0284c7;
+    }
+    body.light-theme .sound-preview-btn:hover {
+      background: #0284c7;
+      color: #ffffff;
+    }
+
     .step-badge-counter {
       padding: 3px 9px;
       border-radius: 9px;
@@ -1039,9 +1109,22 @@
       <button class="action-pill-btn" id="btnToggleKaraoke" onclick="toggleKaraokePractice()">
         🎤 কারাওকে সাব
       </button>
-      <button class="action-pill-btn active" id="btnToggleSound" onclick="toggleTransitionSound()" title="দৃশ্যপট পরিবর্তনের অ্যানিমেটেড সাউন্ড অন/অফ">
-        🔊 <span id="soundText">সাউন্ড চালু</span>
-      </button>
+      <!-- SOUND PRESET SELECTOR & AUDITION -->
+      <div class="sound-select-box" title="স্লাইড ট্রানজিশন সাউন্ড সিলেক্ট করুন">
+        <span style="font-size:0.75rem;">🔊</span>
+        <select class="sound-select-dropdown" id="soundPresetSelect" onchange="onSoundPresetChange(this.value)">
+          <option value="swoosh">💨 ক্ল্যাসিক হুশ (Keynote)</option>
+          <option value="pop">🔘 সফট পপ (Minimal Pop)</option>
+          <option value="chime">🔔 ক্রিস্টাল চাইম (Crystal Chime)</option>
+          <option value="paper">📄 পেপার ফ্লিপ (Paper Flip)</option>
+          <option value="blip">⚡ ডিজিটাল ব্লিপ (Tech Blip)</option>
+          <option value="camera">📸 ক্যামেরা শাটার (Click)</option>
+          <option value="none">🔇 সাউন্ড বন্ধ (Mute)</option>
+        </select>
+        <button type="button" class="sound-preview-btn" onclick="previewCurrentSound()" title="সাউন্ডটি শুনে দেখুন">
+          ▶ শুনুন
+        </button>
+      </div>
       <button class="btn-record" id="btnRecord" onclick="toggleRecording()">
         <span id="recDot">🔴</span>
         <span id="recText">কন্টেন্ট ও ভয়েস রেকর্ড</span>
@@ -1742,8 +1825,8 @@
       setTimeout(() => updateThemeUI(true), 50);
     }
 
-    // ===== ANIMATED SCENE TRANSITION SOUND SYSTEM (WEB AUDIO API) =====
-    let isSoundEnabled = true;
+    // ===== ANIMATED SCENE TRANSITION SOUND SYSTEM (MULTI-PRESET) =====
+    let currentSoundPreset = localStorage.getItem('abm_sound_preset') || 'swoosh';
     let audioCtx = null;
 
     function getAudioContext() {
@@ -1757,117 +1840,170 @@
       return audioCtx;
     }
 
-    function toggleTransitionSound() {
-      isSoundEnabled = !isSoundEnabled;
+    function onSoundPresetChange(val) {
+      currentSoundPreset = val;
       try {
-        localStorage.setItem('abm_studio_sound', isSoundEnabled ? 'true' : 'false');
+        localStorage.setItem('abm_sound_preset', val);
       } catch(e) {}
-      updateSoundUI(isSoundEnabled);
-      if (isSoundEnabled) {
-        playTransitionSound('next');
-      }
+      previewCurrentSound();
     }
 
-    function updateSoundUI(enabled) {
-      const btn = document.getElementById('btnToggleSound');
-      const text = document.getElementById('soundText');
-      if (!btn) return;
-      if (enabled) {
-        btn.classList.add('active');
-        if (text) text.innerText = 'সাউন্ড চালু';
-      } else {
-        btn.classList.remove('active');
-        if (text) text.innerText = 'সাউন্ড অফ';
-      }
+    function previewCurrentSound() {
+      playTransitionSound('next');
     }
 
-    // Auto load saved sound setting
-    if (localStorage.getItem('abm_studio_sound') === 'false') {
-      isSoundEnabled = false;
-      setTimeout(() => updateSoundUI(false), 50);
-    }
+    // Auto set saved sound preset in select dropdown
+    setTimeout(() => {
+      const sel = document.getElementById('soundPresetSelect');
+      if (sel) sel.value = currentSoundPreset;
+    }, 50);
 
-    // HIGH QUALITY ANIMATED TRANSITION SOUND SYNTHESIZER
-    // Layer 1: Bandpass filtered whoosh/wind swoosh
-    // Layer 2: Uplifting dual-tone futuristic chime (major chord sparkle)
-    // Layer 3: Tactile transient pop for punchy physical feel
+    // MULTI-PRESET SOUND SYNTHESIZER
     function playTransitionSound(direction = 'next') {
-      if (!isSoundEnabled) return;
+      if (currentSoundPreset === 'none') return;
       try {
         const ctx = getAudioContext();
         if (!ctx) return;
         const now = ctx.currentTime;
 
-        // LAYER 1: WHOOSH (Filtered noise sweep)
-        const bufferSize = Math.floor(ctx.sampleRate * 0.22);
-        const noiseBuffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
-        const output = noiseBuffer.getChannelData(0);
-        for (let i = 0; i < bufferSize; i++) {
-          output[i] = Math.random() * 2 - 1;
+        if (currentSoundPreset === 'swoosh') {
+          // 1. Classic Keynote Swoosh: Pure silky aerodynamic air rush (low-passed, smooth)
+          const bufferSize = Math.floor(ctx.sampleRate * 0.18);
+          const noiseBuffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+          const output = noiseBuffer.getChannelData(0);
+          for (let i = 0; i < bufferSize; i++) {
+            output[i] = (Math.random() * 2 - 1) * (1 - i / bufferSize);
+          }
+          const noise = ctx.createBufferSource();
+          noise.buffer = noiseBuffer;
+
+          const filter = ctx.createBiquadFilter();
+          filter.type = 'lowpass';
+          if (direction === 'next') {
+            filter.frequency.setValueAtTime(300, now);
+            filter.frequency.exponentialRampToValueAtTime(1400, now + 0.08);
+            filter.frequency.exponentialRampToValueAtTime(250, now + 0.18);
+          } else {
+            filter.frequency.setValueAtTime(1200, now);
+            filter.frequency.exponentialRampToValueAtTime(250, now + 0.18);
+          }
+
+          const gain = ctx.createGain();
+          gain.gain.setValueAtTime(0.001, now);
+          gain.gain.linearRampToValueAtTime(0.24, now + 0.05);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+
+          noise.connect(filter);
+          filter.connect(gain);
+          gain.connect(ctx.destination);
+          noise.start(now);
+          noise.stop(now + 0.19);
         }
-        const whiteNoise = ctx.createBufferSource();
-        whiteNoise.buffer = noiseBuffer;
-
-        const filter = ctx.createBiquadFilter();
-        filter.type = 'bandpass';
-        filter.Q.setValueAtTime(2.2, now);
-
-        if (direction === 'next') {
-          filter.frequency.setValueAtTime(320, now);
-          filter.frequency.exponentialRampToValueAtTime(1900, now + 0.11);
-          filter.frequency.exponentialRampToValueAtTime(420, now + 0.22);
-        } else {
-          filter.frequency.setValueAtTime(1700, now);
-          filter.frequency.exponentialRampToValueAtTime(300, now + 0.2);
-        }
-
-        const noiseGain = ctx.createGain();
-        noiseGain.gain.setValueAtTime(0.001, now);
-        noiseGain.gain.linearRampToValueAtTime(0.18, now + 0.06);
-        noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 0.22);
-
-        whiteNoise.connect(filter);
-        filter.connect(noiseGain);
-        noiseGain.connect(ctx.destination);
-        whiteNoise.start(now);
-        whiteNoise.stop(now + 0.23);
-
-        // LAYER 2: CHIME (Crystal harmonics)
-        const notes = direction === 'next'
-          ? [{ freq: 659.25, time: 0.02, dur: 0.20, vol: 0.14 }, { freq: 987.77, time: 0.08, dur: 0.28, vol: 0.18 }]
-          : [{ freq: 880.00, time: 0.02, dur: 0.18, vol: 0.16 }, { freq: 587.33, time: 0.08, dur: 0.24, vol: 0.12 }];
-
-        notes.forEach(n => {
+        else if (currentSoundPreset === 'pop') {
+          // 2. Soft Minimal Pop: Tactile subtle bubble/pop (iOS/Notion style)
           const osc = ctx.createOscillator();
-          const g = ctx.createGain();
+          const gain = ctx.createGain();
           osc.type = 'sine';
-          osc.frequency.setValueAtTime(n.freq, now + n.time);
-          osc.frequency.exponentialRampToValueAtTime(n.freq * (direction === 'next' ? 1.05 : 0.95), now + n.time + 0.05);
+          
+          const startFreq = direction === 'next' ? 480 : 380;
+          const endFreq = direction === 'next' ? 120 : 90;
+          
+          osc.frequency.setValueAtTime(startFreq, now);
+          osc.frequency.exponentialRampToValueAtTime(endFreq, now + 0.045);
 
-          g.gain.setValueAtTime(0.0001, now + n.time);
-          g.gain.linearRampToValueAtTime(n.vol, now + n.time + 0.015);
-          g.gain.exponentialRampToValueAtTime(0.0001, now + n.time + n.dur);
+          gain.gain.setValueAtTime(0.22, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.045);
 
-          osc.connect(g);
-          g.connect(ctx.destination);
-          osc.start(now + n.time);
-          osc.stop(now + n.time + n.dur + 0.02);
-        });
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.05);
+        }
+        else if (currentSoundPreset === 'chime') {
+          // 3. Crystal Chime: Warm musical bell / marimba ping
+          const freqs = direction === 'next' ? [523.25, 783.99] : [783.99, 523.25];
+          freqs.forEach((freq, idx) => {
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(freq, now + idx * 0.04);
 
-        // LAYER 3: SUB-TRANSIENT POP
-        const pop = ctx.createOscillator();
-        const popGain = ctx.createGain();
-        pop.type = 'triangle';
-        pop.frequency.setValueAtTime(direction === 'next' ? 280 : 200, now);
-        pop.frequency.exponentialRampToValueAtTime(70, now + 0.07);
+            gain.gain.setValueAtTime(0.0001, now + idx * 0.04);
+            gain.gain.linearRampToValueAtTime(0.16, now + idx * 0.04 + 0.01);
+            gain.gain.exponentialRampToValueAtTime(0.0001, now + idx * 0.04 + 0.22);
 
-        popGain.gain.setValueAtTime(0.16, now);
-        popGain.gain.exponentialRampToValueAtTime(0.001, now + 0.07);
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start(now + idx * 0.04);
+            osc.stop(now + idx * 0.04 + 0.23);
+          });
+        }
+        else if (currentSoundPreset === 'paper') {
+          // 4. Paper Flip: Organic page-turning slide
+          const bufferSize = Math.floor(ctx.sampleRate * 0.14);
+          const noiseBuffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+          const output = noiseBuffer.getChannelData(0);
+          for (let i = 0; i < bufferSize; i++) {
+            output[i] = (Math.random() * 2 - 1) * Math.sin((i / bufferSize) * Math.PI);
+          }
+          const noise = ctx.createBufferSource();
+          noise.buffer = noiseBuffer;
 
-        pop.connect(popGain);
-        popGain.connect(ctx.destination);
-        pop.start(now);
-        pop.stop(now + 0.08);
+          const filter = ctx.createBiquadFilter();
+          filter.type = 'highpass';
+          filter.frequency.setValueAtTime(800, now);
+          filter.frequency.linearRampToValueAtTime(1600, now + 0.06);
+          filter.frequency.linearRampToValueAtTime(600, now + 0.14);
+
+          const gain = ctx.createGain();
+          gain.gain.setValueAtTime(0.001, now);
+          gain.gain.linearRampToValueAtTime(0.18, now + 0.03);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.14);
+
+          noise.connect(filter);
+          filter.connect(gain);
+          gain.connect(ctx.destination);
+          noise.start(now);
+          noise.stop(now + 0.15);
+        }
+        else if (currentSoundPreset === 'blip') {
+          // 5. Tech Blip: Crisp UI frequency chirp
+          const osc = ctx.createOscillator();
+          const gain = ctx.createGain();
+          osc.type = 'triangle';
+          
+          const f1 = direction === 'next' ? 440 : 880;
+          const f2 = direction === 'next' ? 880 : 440;
+
+          osc.frequency.setValueAtTime(f1, now);
+          osc.frequency.exponentialRampToValueAtTime(f2, now + 0.05);
+
+          gain.gain.setValueAtTime(0.18, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.05);
+
+          osc.connect(gain);
+          gain.connect(ctx.destination);
+          osc.start(now);
+          osc.stop(now + 0.055);
+        }
+        else if (currentSoundPreset === 'camera') {
+          // 6. Camera Click: Clean crisp snap
+          [0, 0.025].forEach((offset, idx) => {
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = 'square';
+            osc.frequency.setValueAtTime(idx === 0 ? 900 : 450, now + offset);
+            osc.frequency.exponentialRampToValueAtTime(80, now + offset + 0.02);
+
+            gain.gain.setValueAtTime(0.12, now + offset);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + offset + 0.02);
+
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start(now + offset);
+            osc.stop(now + offset + 0.025);
+          });
+        }
       } catch(err) {
         console.warn('Audio transition error:', err);
       }

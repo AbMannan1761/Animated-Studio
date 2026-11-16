@@ -1124,9 +1124,9 @@
       <button class="action-pill-btn" id="btnToggleKaraoke" onclick="toggleKaraokePractice()">
         🎤 কারাওকে সাব
       </button>
-      <!-- SOUND PRESET SELECTOR & AUDITION -->
-      <div class="sound-select-box" title="স্লাইড ট্রানজিশন সাউন্ড সিলেক্ট করুন">
-        <span style="font-size:0.75rem;">🔊</span>
+      <!-- SOUND PRESET SELECTOR -->
+      <div class="sound-select-box" title="Slide Transition Sound (স্লাইড ট্রানজিশন সাউন্ড)">
+        <span style="font-size:0.75rem; cursor:pointer;" onclick="previewCurrentSound()" title="ক্লিক করে সাউন্ড টেস্ট করুন">🔊</span>
         <select class="sound-select-dropdown" id="soundPresetSelect" onchange="onSoundPresetChange(this.value)">
           <option value="swoosh">💨 Keynote Swoosh</option>
           <option value="pop">🔘 Minimal Pop</option>
@@ -1136,9 +1136,6 @@
           <option value="camera">📸 Camera Click</option>
           <option value="none">🔇 Mute</option>
         </select>
-        <button type="button" class="sound-preview-btn" onclick="previewCurrentSound()" title="Preview Sound">
-          ▶ Play
-        </button>
       </div>
       <button class="btn-record" id="btnRecord" onclick="toggleRecording()">
         <span id="recDot">🔴</span>

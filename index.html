@@ -1257,10 +1257,13 @@
           <div style="font-size:12px; color:var(--text-secondary);">স্টেজ ফ্রেম + মাইক — এক ক্লিকে ডাউনলোড করুন।</div>
         </div>
       </div>
-      <div style="display:flex; align-items:center; gap:12px;">
+      <div style="display:flex; align-items:center; gap:10px;">
         <video id="audioPlayback" controls style="max-height:52px; max-width:280px; border-radius:8px; background:#000;"></video>
-        <button id="downloadBtn" class="tele-nav-btn" onclick="downloadAudio()" style="background:var(--accent-emerald); color:#000; border:none; padding:7px 16px;">
+        <button id="downloadBtn" class="tele-nav-btn" onclick="downloadAudio()" style="background:var(--accent-emerald); color:#000; border:none; padding:7px 16px; font-weight:700;">
           💾 ভিডিও ডাউনলোড (.webm)
+        </button>
+        <button type="button" class="action-pill-btn" onclick="closeAudioBanner()" title="এই প্যানেল বন্ধ করুন" style="padding:7px 13px; background:rgba(255,255,255,0.1); border:1px solid rgba(255,255,255,0.25); color:#fff; border-radius:8px; cursor:pointer; font-size:13px; font-weight:700; display:flex; align-items:center; gap:4px; transition: all 0.2s;">
+          ✕ বন্ধ করুন
         </button>
       </div>
     </div>
@@ -2986,6 +2989,7 @@
     async function toggleRecording() {
       if (!isRecording) {
         try {
+          closeAudioBanner();
 
           // ── Step 1: মাইক্রোফোন অডিও ──
           micStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
@@ -3202,6 +3206,16 @@
       a.href = URL.createObjectURL(audioBlob);
       a.download = name;
       a.click();
+    }
+
+    function closeAudioBanner() {
+      const banner = document.getElementById('audioBanner');
+      const player = document.getElementById('audioPlayback');
+      if (banner) banner.style.display = 'none';
+      if (player) {
+        player.pause();
+        player.src = '';
+      }
     }
 
     // INITIALIZE & AUTO LOAD SCENE 1
